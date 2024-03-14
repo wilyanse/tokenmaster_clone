@@ -58,10 +58,47 @@ describe("TokenMaster", ()=>{
       expect(occasion.time).to.be.equal(OCCASION_TIME)
       expect(occasion.location).to.be.equal(OCCASION_LOCATION)
     })
-    
+
     it("Updates occasions count", async ()=> {
       const totalOccasions = await tokenMaster.totalOccasions()
       expect(totalOccasions).to.be.equal(1)
+    })
+  })
+
+  describe("Minting", () => {
+    const ID = 1
+    const SEAT = 50
+    const AMOUNT = ethers.utils.parseUnits('1', 'ether')
+
+    beforeEach(async () => {
+        const transaction = await tokenMaster.connect(buyer).mint(ID, SEAT, { value: AMOUNT })
+        await transaction.wait()
+    })
+
+    it('Updates ticket count', async () => {
+      const occasion = await tokenMaster.getOccasion(1)
+      expect(occasion.tickets).to.be.equal(OCCASION_MAX_TICKETS - 1)
+    })
+
+    it('Updates buying status', async () => {
+      const status = await tokenMaster.hasBought(ID, buyer.address)
+      expect(status).to.be.equal(true)
+    })
+
+    it('Updates seat status', async () => {
+      const owner = await tokenMaster.seatTaken(ID, SEAT)
+      expect(owner).to.equal(buyer.address)
+    })
+
+    it('Updates overall seating status', async () => {
+      const seats = await tokenMaster.getSeatsTaken(ID)
+      expect(seats.length).to.equal(1)
+      expect(seats[0]).to.equal(SEAT)
+    })
+
+    it('Updates the contract balance', async () => {
+      const balance = await ethers.provider.getBalance(tokenMaster.address)
+      expect(balance).to.be.equal(AMOUNT)
     })
   })
 })
